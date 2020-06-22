@@ -1,0 +1,22 @@
+1.创建数据库education
+CREATE DATABASE education;
+
+2.创建数据表Student
+CREATE TABLE Student(
+Sname  VARCHAR(10),
+Sage        INT(3),
+Sgrade    INT(2),
+Score     INT(3)
+);
+
+3.普通查询
+select Sage from Student where Sage<15;
+
+4.排序查询
+select Sage from Student order by Sage;
+
+5.模糊查询
+select Sname from Student where Sname like '%明%';
+
+6.全文检索
+select * from Student where match (Sname) against ('王华');

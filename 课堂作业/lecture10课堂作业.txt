@@ -1,0 +1,123 @@
+一.试描述PHP程序的运行流程
+　　先看看下面这个过程： 
+　　• 我们从未手动开启过PHP的相关进程，它是随着Apache的启动而运行的； 
+　　• PHP通过mod_php5.so模块和Apache相连（具体说来是SAPI，即服务器应用程序编程接口）； 
+　　• PHP总共有三个模块：内核、Zend引擎、以及扩展层； 
+　　• PHP内核用来处理请求、文件流、错误处理等相关操作； 
+　　• Zend引擎（ZE）用以将源文件转换成机器语言，然后在虚拟机上运行它； 
+　　• 扩展层是一组函数、类库和流，PHP使用它们来执行一些特定的操作。比如，我们需要mysql扩展来连接MySQL数据库； 
+　　• 当ZE执行程序时可能会需要连接若干扩展，这时ZE将控制权交给扩展，等处理完特定任务后再返还； 
+　　• 最后，ZE将程序运行结果返回给PHP内核，它再将结果传送给SAPI层，最终输出到浏览器上。 
+　　深入探讨 
+　　等等，没有这么简单。以上过程只是个简略版，让我们再深入挖掘一下，看看幕后还发生了些什么。 
+　　• Apache启动后，PHP解释程序也随之启动； 
+　　• PHP的启动过程有两步； 
+　　• 第一步是初始化一些环境变量，这将在整个SAPI生命周期中发生作用； 
+　　• 第二步是生成只针对当前请求的一些变量设置。
+
+PHP启动第一步
+　　不清楚什么第一第二步是什么？别担心，我们接下来详细讨论一下。让我们先看看第一步，也是最主要的一步。要记住的是，第一步的操作在任何请求到达之前就发生了。 
+　　• 启动Apache后，PHP解释程序也随之启动； 
+　　• PHP调用各个扩展的MINIT方法，从而使这些扩展切换到可用状态。看看php.ini文件里打开了哪些扩展吧； 
+　　• MINIT的意思是“模块初始化”。各个模块都定义了一组函数、类库等用以处理其他请求。 
+　　一个典型的MINIT方法如下：
+PHP_MINIT_FUNCTION(extension_name){  
+/* Initialize functions, classes etc */  
+}
+
+PHP启动第二步
+　　• 当一个页面请求发生时，SAPI层将控制权交给PHP层。于是PHP设置了用于回复本次请求所需的环境变量。同时，它还建立一个变量表，用来存放执行过程中产生的变量名和值。 
+　　• PHP调用各个模块的RINIT方法，即“请求初始化”。一个经典的例子是Session模块的RINIT，如果在php.ini中启用了Session模块，那在调用该模块的RINIT时就会初始化$_SESSION变量，并将相关内容读入； 
+　　• RINIT方法可以看作是一个准备过程，在程序执行之间就会自动启动。 
+　　一个典型的RINIT方法如下：
+PHP_RINIT_FUNCTION(extension_name) {  
+/* Initialize session variables, pre-populate variables, redefine global variables etc */  
+}  
+
+PHP关闭第一步
+如同PHP启动一样，PHP的关闭也分两步： 
+　　• 一旦页面执行完毕（无论是执行到了文件末尾还是用exit或die函数中止），PHP就会启动清理程序。它会按顺序调用各个模块的RSHUTDOWN方法。 
+　　• RSHUTDOWN用以清除程序运行时产生的符号表，也就是对每个变量调用unset函数。 
+　　一个典型的RSHUTDOWN方法如下：
+PHP_RSHUTDOWN_FUNCTION(extension_name) {  
+/* Do memory management, unset all variables used in the last PHP call etc */  
+}  
+
+PHP关闭第二步
+最后，所有的请求都已处理完毕，SAPI也准备关闭了，PHP开始执行第二步： 
+　　• PHP调用每个扩展的MSHUTDOWN方法，这是各个模块最后一次释放内存的机会。 
+　　一个典型的RSHUTDOWN方法如下：
+PHP_MSHUTDOWN_FUNCTION(extension_name) {  
+/* Free handlers and persistent memory etc */  
+}  
+这样，整个PHP生命周期就结束了。要注意的是，只有在服务器没有请求的情况下才会执行“启动第一步”和“关闭第二步”。 
+
+
+php从下到上是一个4层体系 
+　　①Zend引擎 
+　　Zend整体用纯c实现，是php的内核部分，它将php代码翻译（词法、语法解析等一系列编译过程）为可执行opcode的处理并实现相应的处理方法、实现了基本的数据结构（如hashtable、oo）、内存分配及管理、提供了相应的api方法供外部调用，是一切的核心，所有的外围功能均围绕zend实现。 
+　　②Extensions 
+　　围绕着zend引擎，extensions通过组件式的方式提供各种基础服务，我们常见的各种内置函数（如array系列）、标准库等都是通过extension来实现，用户也可以根据需要实现自己的extension以达到功能扩展、性能优化等目的（如贴吧正在使用的php中间层、富文本解析就是extension的典型应用）。 
+　　③Sapi 
+　　Sapi全称是Server Application Programming Interface，也就是服务端应用编程接口，sapi通过一系列钩子函数，使得php可以和外围交互数据，这是php非常优雅和成功的一个设计，通过sapi成功的将php本身和上层应用解耦隔离，php可以不再考虑如何针对不同应用进行兼容，而应用本身也可以针对自己的特点实现不同的处理方式。后面将在sapi章节中介绍 
+　　④上层应用 
+　　这就是我们平时编写的php程序，通过不同的sapi方式得到各种各样的应用模式，如通过webserver实现web应用、在命令行下以脚本方式运行等等。　　
+
+
+二.目前常用的服务器软件有哪些
+（1）ApacheApache是世界使用排名第一的Web服务器软件。它可以运行在几乎所有广泛使用的计算机平台上。Apache源于NCSAhttpd服务器，经过多次修改，成为世界上最流行的Web服务器软件之一。Apache取自"a patchy server"的读音，意思是充满补丁的服务器，因为它是自由软件，所以不断有人来为它开发新的功能、新的特性、修改原来的缺陷。Apache的特点是简单、速度快、性能稳定，并可做代理服务器来使用。
+（2）IIS是英文Internet Information Server的缩写，译成中文就是"Internet信息服务"的意思。它是微软公司主推的服务器，最新的版本是Windows2008里面包含的IIS 7，IIS与Window Server完全集成在一起，因而用户能够利用Windows Server和NTFS（NT File System，NT的文件系统）内置的安全特性，建立强大，灵活而安全的Internet和Intranet站点。
+（3）GFEGoogle的web服务器，用户数量激增。目前紧逼iis。
+（4）Nginx不仅是一个小巧且高效的HTTP服务器，也可以做一个高效的负载均衡反向代理，通过它接受用户的请求并分发到多个Mongrel进程可以极大提高Rails应用的并发能力。
+（5）Lighttpd是由德国人 Jan Kneschke 领导开发的，基于BSD许可的开源WEB服务器软件，其根本的目的是提供一个专门针对高性能网站，安全、快速、兼容性好并且灵活的web server环境。具有非常低的内存开销，CPU占用率低，效能好，以及丰富的模块等特点。Lighttpd 是众多OpenSource轻量级的web server中较为优秀的一个。支持FastCGI, CGI, Auth, 输出压缩(output compress), URL重写, Alias等重要功能。
+（6）Zeus是一个运行于Unix下的非常优秀的Web Server，据说性能超过Apache，是效率最高的Web Server之一。
+（7）Sun的Java系统Web服务器也就是以前的Sun ONE Web Server。主要出现在那些运行Sun的Solaris操作系统的关键任务级Web服务器上。它最新的版本号是6.1,可以支持x86版本Solaris，Red Hat Linux，HP-UX 11i， IBM AIX，甚至可以支持Windows，但它的大多数用户都选择了SPARC版本的Solaris操作系统。
+（8）Resin提供了最快的jsp/servlets运行平台。在java和javascript的支持下，Resin可以为任务灵活选用合适的开发语言。Resin的一种先进的语言XSL(XML stylesheet language)可以使得形式和内容相分离。
+（9）Jetty是一个开源的servlet容器，它为基于Java的web内容，例如JSP和servlet提供运行环境。Jetty是使用Java语言编写的，它的API以一组JAR包的形式发布。开发人员可以将Jetty容器实例化成一个对象，可以迅速为一些独立运行（stand-alone）的Java应用提供网络和web连接。
+（10）BEA WebLogic是用于开发、集成、部署和管理大型分布式Web应用、网络应用和数据库应用的Java应用服务器。将Java的动态功能和Java Enterprise标准的安全性引入大型网络应用的开发、集成、部署和管理之中。 BEA WebLogic Server拥有处理关键Web应用系统问题所需的性能、可扩展性和高可用性。
+（11）Tomcat是Apache 软件基金会（Apache Software Foundation）的Jakarta 项目中的一个核心项目，由Apache、Sun 和其他一些公司及个人共同开发而成。由于有了Sun 的参与和支持，最新的Servlet 和JSP 规范总是能在Tomcat 中得到体现。因为Tomcat 技术先进、性能稳定，而且免费，因而深受Java 爱好者的喜爱并得到了部分软件开发商的认可，成为目前比较流行的Web 应用服务器。
+
+三.如何将PHP与Apache建立关联
+在Apache中配置 PHP 支持
+PHP 文件的扩展名就是 .php 我们可以尝试在刚刚配置的网站中添加一个扩展名为 php 的文件，具体步骤
+
+1.在服务器上安装 PHP
+2.解压 php 到纯英文路径目录中
+3.在 Apache 中添加支持 PHP 的配置
+4.在 Apache 添加 PHP 处理模块
+
+#LoadModule watchdog_module modules/mod_watchdog.so
+#LoadModule xml2enc_module modules/mod_xml2enc.so
+
+#在引号中引入php文件地址
+LoadModule php5_module "${INSTALL_DIR}/bin/php/php5.6.25/php5apache2_4.dll"
+
+
+在 <IfModule mime_module> 节点中添加 .php 扩展名解析支持
+
+    #
+    # If the AddEncoding directives above are commented-out, then you
+    # probably should define those extensions to indicate media types:
+    #
+    AddType application/x-compress .Z
+    AddType application/x-gzip .gz .tgz
+    AddType application/x-httpd-php .php
+    AddType application/x-httpd-php .php3
+
+默认文档配置节点 <IfModule dir_module> 中添加 index.php
+默认文档指的是在访问一个目录而不是具体文件名时，默认执行的文件名
+<IfModule dir_module>
+    DirectoryIndex index.php index.php3 index.html index.htm
+</IfModule>
+
+重启Apache
+
+Apache 与 PHP他们两者各自有各自负责的领域，各自的职责，但是我们在使用 PHP 做动态网站开发时，两者就会产生联系
+
+
+四.主目录下的子目录和虚拟目录有什么区别
+1. 实际目录，就是文件储存bai到你电du脑硬盘上的目录，例如：E:\Website, E:\Website\Image就是zhi真实的dao目录
+2. 虚拟目录，是对Http访问而言的,用户在浏览网站或FPT时显示的目录结构。例如你在IIS上设置了E:\Website为访问目录。
+那么E:\Website为虚拟目录的根目录；E:\Website\Image,就变成了\Image. 变成虚拟目录后的结构如下根目录|_Image可见
+这个目录是虚拟出来的，而不是电脑上的真实目录，但访问比真实目录强，在网站设计时更加方便。
+因为有时候设计网页的电脑与放在网上访问的电脑是不同的。放置文件的真实目录有可能就不同。有的放在E盘上、有的放在D盘上。

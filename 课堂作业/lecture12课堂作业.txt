@@ -1,0 +1,217 @@
+一.PHP提供的几种内置数组
+1.数组的键|值操作函数
+<span style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; background-color: rgb(255, 255, 255);">1.函数array_values()</span>
+<span style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; background-color: rgb(255, 255, 255);">该函数是返回数组所有元素的值，只有一个必选参数，规定传入给定的数组。返回一个包含所有数组“值”的数组，但是不保留键名，被返回的数组键key，是重新建立索引，从0开始递增。适用于数组下标混乱的数组或者把关联数组转换成索引数组。</span>
+<?php
+$a=array("a"=>"Cat","b"=>"Dog","c"=>"Horse");
+print_r(array_values($a));
+?>
+
+Array ( [0] => Cat [1] => Dog [2] => Horse )
+
+2.函数array_keys（array input,[mixed search_value],[bool strict]）
+函数的作用是返回数组的键名，函数中一个必须参数，两个可选参数。
+如果指定了可选参数search_value，那么就返回search_value的键名，否则返回所有的键名数组。自php5，参数strict参数来进行全等比较，默认false不依赖类型，true话，在数组input寻找与search_value相同的类型值，如果没有不返回。
+
+<?php
+$a=array("a"=>"Horse","b"=>"Cat","c"=>"Dog");
+print_r(array_keys($a));
+?>
+输出：
+Array ( [0] => a [1] => b [2] => c )
+
+<?php
+$a=array("a"=>"Horse","b"=>"Cat","c"=>"Dog");
+print_r(array_keys($a,"Dog"));
+?>
+输出：Array ( [0] => c)
+
+</pre><pre name="code" class="html">
+<?php
+$a=array(10,20,30,"10");
+print_r(array_keys($a,"10",false));
+?>
+输出：Array ( [0] => 0 [1] => 3 )
+
+<?php
+$a=array(10,20,30,"10");
+print_r(array_keys($a,"10",true));
+?>
+输出：Array ( [0] => 3)
+
+
+3.函数in_array(mixed needle，array haystack,[bool strict])
+函数作用是检查数组是否有某个值，三个参数前两个必须，最后一个可选。needl是要在数组haystack要寻找的值。找到返回ture，否则为false。如果第三个参数设置为true，needl类型也要和数组haystack的值一样才会返回true。
+
+
+<?php
+
+$people = array("Peter", "Joe", "Glenn", "Cleveland");
+if (in_array("Glenn",$people))
+  {
+  echo "Match found";
+  }
+else
+  {
+  echo "Match not found";
+  }
+?>
+输出：
+Match found
+
+
+<?php
+$people = array("Peter", "Joe", "Glenn", "Cleveland", 23);
+if (in_array("23",$people, TRUE))
+  {
+  echo "Match found<br />";
+  }
+else
+  {
+  echo "Match not found<br />";
+  }if (in_array("Glenn",$people, TRUE))
+  {
+  echo "Match found<br />";
+  }
+else
+  {
+  echo "Match not found<br />";
+  }if (in_array(23,$people, TRUE))
+  {
+  echo "Match found<br />";
+  }
+else
+  {
+  echo "Match not found<br />";
+  }
+?>
+输出：
+Match not found
+Match found
+Match found
+
+
+
+
+4.array_search(mixed needl ,array haystack,[bool strict])
+array_search和in_array()类似，唯一不同，array_search()返回是needle键名。
+5.array_key_exists(mixed key，array haystack)
+函数查找haystack中的键名是否有key，因为数组键名是唯一。
+
+<?php
+$a=array("a"=>"Dog","b"=>"Cat");
+if (array_key_exists("a",$a))
+	{
+	echo "Key exists!";
+	}
+else
+	{
+	echo "Key does not exist!";
+	}
+?>
+输出：
+Key exists!
+<?php$a=array("Dog",Cat");
+if (array_key_exists(0,$a))
+	{
+	echo "Key exists!";
+	}
+else
+	{
+	echo "Key does not exist!";
+	}
+?>
+输出：
+Key exists!
+
+
+6.array_flip(array trans)
+函数作用是交换数组的键和值，返回交换后的数组，如果一个值出现多次，那么最后一个键名将作为他的值，覆盖前面出现的值。如果原数组值的类型不是字符串或整数，那么报错。
+<?php
+$a=array(0=>"Dog",1=>"Cat",2=>"Horse");
+print_r(array_flip($a));
+?>
+输出：
+Array ( [Dog] => 0 [Cat] => 1 [Horse] => 2 )
+
+
+7.array_reverse(array array[,bool preverse_key])
+函数左右是将原数组中的元素顺序反转，返回反转后的数组。如果preverse_key为true，则元素的键名保持不变。
+<?php
+$a=array("a"=>"Dog","b"=>"Cat","c"=>"Horse");
+print_r(array_reverse($a));
+?>
+输出：
+Array ( [c] => Horse [b] => Cat [a] => Dog )
+
+
+
+
+
+二.PHP网页间数据传递的四种方式：
+1.SESSION方式：
+通过$_SESSION['name'] = value 赋值，就可以在session的生命周期内一直调用该session值。
+需要注意的是‘name’需要唯一，不能重复。
+
+session的一个生命周期：从用户访问页面开始，到断开与网站的链接为止。
+用session存储变量的问题是在之前已经打开页面展示seesion数据的情况下，若新打开一个页面，则之前那个页面的session相关赋值会同步更新，
+这在一些情况下并不是想要达到的效果。不过也因此SESSION适合用来记录用户的在线时间。
+
+2.GET方式
+传递的参数链接在目标url的后面，这边需要注意的是url的两种形式----路由形式和路径形式get传值的不同：
+
+路径形式的get传值方式：path/index.php/?id=7878&a=234234
+路由形式的get传值方式：path?r=index.php?id =11&b = 88
+在目标页面用$_GET就能获取所有的get参数
+之前一直只知道路由形式的方式，路径形式方式不知道是啥样，然后在想用其他三种方式传值，虽然都能实现但有些繁琐。然后一筹莫展之时看到了一个url就是路径形式GET传值方式。。。。看来还是书读得少。。。。
+
+3.POST方式
+form表单提交action指定跳转url;
+js的
+document.formname.action = 'url';
+document.formname.submit(); //formname为表单名字
+ 
+4.数据表方式
+最繁琐的方式，将页面内容存入数据表，再在另外一个页面从表中将特定记录取出。
+
+
+
+
+
+
+三、COOKIE和SESSION的区别        
+（1）存储位置：Cookie存储在客户端浏览器中，相对不安全；Session内容所在文件存储在服务器中，一般在根目录下的tmp文件夹中，相对更安全。        
+（2）数量和大小限制：Cookie存储的数据在不同的浏览器会有不同的限制，一般在同一个域名下，Cookie变量数量控制在20个以内，每个cookie值的大小控制在4kb以内。
+session值没有大小和数量限制，但如果数量过多，会增大服务器的压力。        
+（3）内容区别：cookie保存的内容是字符串，而服务器中的session保存的数据是对象。        
+（4）路径区别：session不能区分路径，同一个用户在访问一个网站期间，所有的session在任何一个地方都可以访问到；而cookie中如果设置了路径参数，那么同一个网站中不同路径下的cookie互相是访问不到的。
+
+
+
+
+
+
+四.PHP中通过内置数组获取哪些服务器信息，如何获取
+下面是PHP获取当前服务器信息的基本语句。
+
+PHP程式版本： <?PHP echo PHP_VERSION; ?> 
+ZEND版本： <?PHP echo zend_version(); ?> 
+MYSQL支持： <?php echo function_exists (mysql_close)?"是":"否"; ?>
+
+MySQL数据库持续连接 ：  
+<?php echo @get_cfg_var("mysql.allow_persistent")?"是 ":"否"; ?> 
+MySQL最大连接数：
+<?php echo @get_cfg_var("mysql.max_links")==-1 ? "不限" : @get_cfg_var("mysql.max_links");?>1
+
+服务器操作系统： <?PHP echo PHP_OS; ?> 
+服务器端信息： <?PHP echo $_SERVER ['SERVER_SOFTWARE']; ?> 
+最大上传限制： <?PHP echo get_cfg_var ("upload_max_filesize")?get_cfg_var ("upload_max_filesize"):"不允许上传附件"; ?> 
+最 大执行时间： <?PHP echo get_cfg_var("max_execution_time")."秒 "; ?> 
+脚本运行占用最大内存：  <?PHP echo get_cfg_var ("memory_limit")?get_cfg_var("memory_limit"):"无" ?>
+
+查询当前连接的MYSQL数据库的版本 php自带函数 mysql_get_server_info()  获得服务
+
+date_default_timezone_set (PRC); echo date(“Y-m-d G:i:s”);
+ 的MYSQL数据库的版本 php自带函数 mysql_get_server_info()  获得服务器系统时间：
+
+ date_default_timezone_set (PRC); echo date("Y-m-d G:i:s");

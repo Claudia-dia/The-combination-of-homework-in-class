@@ -1,0 +1,183 @@
+一.创建存储过程
+1.创建存储过程
+delimiter //
+create procedure pro()
+reads sql data
+begin
+select * from stu;
+end
+//
+
+2.使用存储过程
+call pro();
+
+3.创建一个带参数的存储过程
+create table stu(
+stu_id bigint primary key auto_increment,#学号
+stu_name varchar(10) not null,#姓名
+stu_major int not null,#专业号
+stu_sex char,#性别
+stu_in date,#入学日期
+stu_birth date,#出生日期
+foreign key (stu_major) references major(ma_id)#专业外键设置
+);
+
+create table major(
+ma_id int primary key,
+ma_name varchar(15),
+ma_boss varchar(10)
+);
+insert into major values(1,"信管","张三");
+insert into major values(2,"电子商务","李四");
+insert into stu values(1,"小明",1,"男","2017-09-01","1998-12-23");
+insert into stu values(2,"小高",1,"男","2017-09-01","1998-05-01");
+insert into stu values(3,"小李",2,"男","2017-09-01","1999-04-01");
+
+再来创建一个带有参数的存储过程找到学生的主修课的名字，代码如下：
+delimiter //
+create procedure pro1(in sname varchar(10),out ma varchar(10))
+reads sql data
+begin
+select ma_name into ma from major where ma_id = (select stu_major from stu where stu_name=sname);
+end
+//
+
+使用这个存储过程：代码如下：
+set @ma="没查询之前";
+call pro1("小李",@ma);
+select @ma;
+
+
+
+二. 创建存储函数
+1.创建一个函数
+delimiter //
+create function fun1(num int)
+returns int
+begin
+return num+1000;
+end
+//
+
+2.调用函数
+select fun1(100);
+
+
+
+
+三.删除存储函数和存储过程
+drop procedure pro;
+
+
+
+
+四.存储过程，函数与触发器在真实业务系统的使用场景
+
+1.存储过程的作用
+(1)带有输入参数的存储过程
+
+    需求：传入一个员工的id，查询员工信息
+
+DELIMITER $CREATE PROCEDURE pro_findById(IN eid INT)  -- IN: 输入参数
+BEGIN    
+SELECT * FROM employee WHERE id=eid;
+END $  
+-- 调用
+CALL pro_findById(4);
+
+ 
+
+(2)带有输出参数的存储过程
+
+DELIMITER $
+CREATE PROCEDURE pro_testOut(OUT str VARCHAR(20))  -- OUT：输出参数
+BEGIN
+        -- 给参数赋值
+    SET str='hellojava';
+END $
+
+
+(3)带有输入输出参数的存储过程
+
+DELIMITER $
+CREATE PROCEDURE pro_testInOut(INOUT n INT)  -- INOUT： 输入输出参数
+BEGIN
+   -- 查看变量
+   SELECT n;
+   SET n =500;
+END $
+ -- 调用
+SET @n=10;
+ CALL pro_testInOut(@n);
+ SELECT @n;
+
+ 
+
+(4)带有条件判断的存储过程
+
+需求：输入一个整数，如果1，则返回“星期一”,如果2，返回“星期二”,如果3，返回“星期三”。其他数字，返回“错误输入”;
+
+DELIMITER $CREATE PROCEDURE pro_testIf(IN num INT,OUT str VARCHAR(20))
+BEGIN
+    IF num=1 THEN
+        SET str='星期一';
+    ELSEIF num=2 THEN
+        SET str='星期二';
+    ELSEIF num=3 THEN
+        SET str='星期三';
+    ELSE
+        SET str='输入错误';
+    END IF;
+END $
+ --调用
+CALL pro_testIf(4,@str);
+ SELECT @str;
+
+ 
+
+(5)带有循环功能的存储过程
+
+需求： 输入一个整数，求和。例如，输入100，统计1-100的和
+
+DELIMITER $
+CREATE PROCEDURE pro_testWhile(IN num INT,OUT result INT)
+BEGIN
+    -- 定义一个局部变量
+    DECLARE i INT DEFAULT 1;
+    DECLARE vsum INT DEFAULT 0;
+    WHILE i<=num DO
+          SET vsum = vsum+i;
+          SET i=i+1;
+    END WHILE;
+    SET result=vsum;
+END $
+ --调用
+CALL pro_testWhile(100,@result);
+ SELECT @result;
+
+
+(6)使用查询的结果赋值给变量（INTO）
+
+DELIMITER $
+CREATE PROCEDURE pro_findById2(IN eid INT,OUT vname VARCHAR(20) )
+BEGIN
+    SELECT empName INTO vname FROM employee WHERE id=eid;
+END $
+ --调用
+CALL pro_findById2(1,@NAME);
+ SELECT @NAME;
+
+
+2.触发器的作用
+例：
+需求： 当向员工表插入一条记录时，希望mysql自动同时往日志表插入数据
+CREATE TRIGGER tri_empAdd AFTER INSERT ON employee FOR EACH ROW    -- 当往员工表插入一条记录时
+     INSERT INTO test_log(content) VALUES('员工表插入了一条记录');
+
+以上触发器是基于insert的，以下两个是基于update和delete的。
+
+-- 创建触发器(修改)
+CREATE TRIGGER tri_empUpd AFTER UPDATE ON employee FOR EACH ROW    -- 当往员工表修改一条记录时
+     INSERT INTO test_log(content) VALUES('员工表修改了一条记录');
+ -- 创建触发器(删除)CREATE TRIGGER tri_empDel AFTER DELETE ON employee FOR EACH ROW    -- 当往员工表删除一条记录时
+     INSERT INTO test_log(content) VALUES('员工表删除了一条记录');

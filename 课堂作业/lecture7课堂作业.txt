@@ -1,0 +1,32 @@
+1.查看所有用户，创建用户以及删除用户
+（1）查看所有用户
+use mysql;
+select User from user;
+
+（2）创建用户
+create user Candice identified by 'Candice@123456';
+
+（3）删除用户
+drop user Candice;
+
+
+2.用户权限管理
+（1）创建用户Candice,查看她现在拥有的权限
+select * from user where user='Candice' \G;
+
+（2）创建一个临时数据库(tempdb),并将所有操作权限赋予用户Candice
+create database tempdb ;
+grant all privileges on tempdb.* to Candice@'%'  identified by 'Candice@123456';
+flush privileges ;
+select user,db,select_priv,insert_priv,update_priv_priv from db wher
+e user='Candice';
+
+（3）收回用户Candice对于数据库tempdb的所有权限
+revoke all priviledge on tempdb. * from Candice@'%';
+flush priviledges;
+
+（4）赋予用户Welkin对于表tempdb数据库的数据表temptable可查询的权限
+use  tempdb ;
+create table temptable (inttest INT); 
+grant select  on tempdb.temptable to  Candice@'%' identified by 'Candice@123456';
+show grants for Welkin ;
